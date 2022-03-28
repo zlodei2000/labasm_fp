@@ -4,6 +4,7 @@ extern  "C" int power2(int num, int power);
 
 int main()
 {
+	// fuck dddd
 	double a, b, c;
 	const char* msg1 = "x = %f\t f(x) = %f\n";
 	const char* msg2 = "x = %f\t f(x) = n/a\n";
