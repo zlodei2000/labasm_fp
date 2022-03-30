@@ -1,226 +1,104 @@
 ﻿#include <iostream> 
+
 using namespace std;
-extern  "C" int power2(int num, int power);
+//char prnformat[] = "%s\n";
+int findsubstring(char strbig[], char substr[]) {
+    __asm {
+            //mov	eax, strbig; первый аргумент
+            //push	eax
+            //mov     eax, offset prnformat
+            //push    eax
+            //call	printf
+            //add	esp, 8
+
+            //mov	eax, substr; второй аргумент
+            //push	eax
+            //mov     eax, offset prnformat
+            //push    eax
+            //call	printf
+            //add	esp, 8
+
+                mov     esi, DWORD PTR[strbig]; строка
+                mov     edi, DWORD PTR[substr]; подстрока
+
+                mov eax, -1                     ; здесь будет результат, сразу делаем -1 - типа не найдено
+                xor ecx, ecx                    ; сколько совпавших символов подстроки, в начале 0
+                xor ebx, ebx                    ; здесь будем сравнивать текущий символ, обнулим
+
+                mov edx, edi                    ; EDX сохранит адрес подстроки, чтоб можно было быстро переходит на начало подстроки
+
+                cmp BYTE PTR[esi], 0            ; Если на вход пустая строка или  подстрока
+                je $endproc                     ; выход
+                cmp BYTE PTR[edi], 0            ; 
+                je $endproc                     ; выход
+
+                xor eax, eax                    ; номер текущего символа большой строки   = 0
+
+                ; Иначе будем искать в цикле.ESI - большая строка.EDI - подстрока
+$for :
+                mov bl, BYTE PTR[esi]       ; в BL - текущий символ строки
+                cmp bl, 0                   ; если 0 = строка кончилась, значит не нашли подстроку
+                jne $cnt
+                mov eax,-1                  ; возвращаем -1
+                jmp $ex
+$cnt:           cmp bl, [edi]               ; сравним его с символом в подстроке
+                jne $no                     ; если символы не равны, значит надо двигать на следующий в большой строке и заканчиваем сравнение блока
+                inc ecx                     ; Иначе увеличим счетчик длины искомого
+                inc edi                     ; Перескочим на следующий символ в подстроке
+                cmp BYTE PTR[edi], 0        ; проверим узнаем не конец ли подстроки
+                je $endproc                 ; Если конец - строка найдена.Выходим.
+                jmp $next                   ; Иначе пойдем на следующую итерацию цикла поиска
+$no :
+                sub esi, ecx                ; Поскольку используется один цикл для прохода
+                                            ; После поиска подстроки нам приходится возвращаться на тот символ, с которого мы начали.
+                                            ; 
+                xor ecx, ecx                ; делаем что совпавших символов = 0
+                mov edi, edx                ; И в подстроке снова на начало следующего символа
+$next :
+                inc eax                     ; номер просматриваемого +1
+                inc esi                     ; сдвигаемся в большой строке на следующий символ
+
+                jmp $for                    ; на начало цикла
+$endproc :
+                sub eax, ecx                ; Поскольку у нас ЕАХ будет указывать на позицию последнего символа искомого,
+                inc eax                     ; и корректировка
+$ex:
+    }
+}
+
+int findsubstring2(char* str, char* substr) {
+	if (str[0] == '\0' || substr[0] == '\0')
+		return -1;
+
+	int res = -1;
+
+	for (int i = 0; str[i] != '\0'; i++)
+	{
+		int j;
+		for (j=0; (str[i+j] == substr[j]) && str[i+j] != '\0' && substr[j] != '\0';j++)
+		{
+		}
+		if (substr[j] == '\0') {
+			res = i;
+			break;
+		}
+	}
+	return res;
+}
 
 int main()
 {
-	// 
-	// change 2
-	double a, b, c;
-	const char* msg1 = "x = %f\t f(x) = %f\n";
-	const char* msg2 = "x = %f\t f(x) = n/a\n";
-	const double dzero = 0.0;
-	const double done = 1.0;
-	const double dfour = 4.0;
-	const double dfive = 5.0;
-	const double dten = 10.0;
-	cout << "power 2:" << power2(1, 1) << endl;
+	string str, substr;
+	//do {
+	//	cout << "enter string (not empty):";
+	//	getline(cin, str); 
+	//	cout << "enter substring (should be shorter than str):";
+	//	getline(cin, substr); 
+	//} while ((str.length() == 0) || (substr.length() > str.length()) || substr.length() == 0);
+	//
+	str = "hello world";
+	substr = "wo";
+	cout << "substring position (c version):" << findsubstring2((char*)str.c_str(), (char*)substr.c_str()) << endl;
 
-	cout << "sizeof char " << sizeof(char) << endl;
-	cout << "Enter a: ";
-	cin >> a;
-	cout << "Enter b: ";
-	cin >> b;
-
-	do {
-		cout << "Enter c( c != 4.0): ";
-		cin >> c;
-	} while (c == 4.0);
-
-	double d, e, i;
-	do {
-		cout << "Enter d: ";
-		cin >> d;
-		cout << "Enter e (e > d): ";
-		cin >> e;
-	} while (d >= e);
-
-	do {
-		cout << "Enter i ( (d + i) < e ): ";
-		cin >> i;
-	} while (d + i >= e);
-
-	double f;
-	double x;
-
-	printf("\n cpp output:\n");
-
-	for (x = d; x <= e; x += i) {
-		if (x + dfive < dzero && c == dzero) {
-			if (x != dzero) {
-				f = done / a * x - b;
-				printf(msg1, x, f);
-			}
-			else {
-				printf(msg2, x);
-			}
-		}
-		else if (x + dfive > 0 && c != dzero) {
-			if (x != dzero) {
-				f = (x - a) / x;
-				printf(msg1, x, f);
-			}
-			else {
-				printf(msg2, x);
-			}
-		}
-		else {
-			f = dten * x / (c - dfour);
-			printf(msg1, x, f);
-		}
-	}
-
-	printf("\n Assembler output:\n");
-
-	__asm {
-		//	for (double x = d; x <= e; x += i) {
-
-			movsd	xmm0, d
-			movsd	x, xmm0
-			jmp	SHORT $LN13main
-$LN11main:
-			movsd	xmm0, x
-			addsd	xmm0, i
-			movsd	x, xmm0
-$LN13main:
-			movsd	xmm0, e
-			comisd	xmm0, x
-			jb	$LN12main
-
-		// if (x + dfive < dzero && c == dzero) {
-
-			movsd	xmm0, x
-			addsd	xmm0,  dfive
-			xorps	xmm1, xmm1
-			comisd	xmm1, xmm0
-			jbe	$LN14main
-			movsd	xmm0,  c
-			ucomisd	xmm0,  dzero
-			lahf
-			test	ah, 68 // 00000044H
-			jp	$LN14main
-		// if (x != dzero) {
-			movsd	xmm0,  x
-			ucomisd	xmm0,  dzero
-			lahf
-			test	ah, 68 // 00000044H
-			jnp	SHORT $LN16main
-		// f = done / a * x - b;
-			movsd	xmm0,  done
-			divsd	xmm0,  a
-			mulsd	xmm0,  x
-			subsd	xmm0,  b
-			movsd	 f, xmm0
-		// printf(msg1, x, f);
-
-			sub	esp, 8
-			movsd	xmm0,  f
-			movsd	[esp], xmm0
-			sub	esp, 8
-			movsd	xmm0,  x
-			movsd	[esp], xmm0
-			mov	eax, DWORD PTR msg1
-			push	eax
-			call	printf
-			add	esp, 20 
-			jmp	SHORT $LN17main
-$LN16main:
-		// else {
-		// printf(msg2, x);
-
-			sub	esp, 8
-			movsd	xmm0,  x
-			movsd	[esp], xmm0
-			mov	eax, DWORD PTR msg2
-			push	eax
-			call	printf
-			add	esp, 12 // 0000000cH
-$LN17main:
-
-			jmp	$LN19main
-
-$LN14main:
-
-		// else if (x + dfive > 0 && c != dzero) {
-
-			movsd	xmm0,  x
-			addsd	xmm0,  dfive
-			comisd	xmm0,  dzero
-			jbe	$LN18main
-			movsd	xmm0,  c
-			ucomisd	xmm0,  dzero
-			lahf
-			test	ah, 68; 00000044H
-			jnp	SHORT $LN18main
-
-		//	if (x != dzero) {
-			movsd	xmm0,  x
-			ucomisd	xmm0,  dzero
-			lahf
-			test	ah, 68 // 00000044H
-			jnp	SHORT $LN20main
-		// f = (x - a) / x;
-
-			movsd	xmm0,  x
-			subsd	xmm0,  a
-			divsd	xmm0,  x
-			movsd	 f, xmm0
-
-		//	printf(msg1, x, f);
-
-			sub	esp, 8
-			movsd	xmm0,  f
-			movsd	[esp], xmm0
-			sub	esp, 8
-			movsd	xmm0,  x
-			movsd	[esp], xmm0
-			mov	eax, DWORD PTR msg1
-			push	eax
-			call	printf
-			add	esp, 20
-
-			jmp	SHORT $LN21main
-$LN20main:
-		//	else {
-		//	printf(msg2, x);
-			sub	esp, 8
-			movsd	xmm0,  x
-			movsd	[esp], xmm0
-			mov	eax, DWORD PTR msg2
-			push	eax
-			call	printf
-			add	esp, 12
-
-$LN21main:
-
-			jmp	SHORT $LN19main
-$LN18main:
-		//	else {
-		//	f = dten * x / (c - dfour);
-
-			movsd	xmm0,  dten
-			mulsd	xmm0,  x
-			movsd	xmm1,  c
-			subsd	xmm1,  dfour
-			divsd	xmm0, xmm1
-			movsd	 f, xmm0
-
-		// printf(msg1, x, f);
-
-			sub	esp, 8
-			movsd	xmm0,  f
-			movsd	[esp], xmm0
-			sub	esp, 8
-			movsd	xmm0,  x
-			movsd	[esp], xmm0
-			mov	eax, DWORD PTR msg1
-			push	eax
-			call	printf
-			add	esp, 20
-$LN19main:
-		jmp	$LN11main
-
-$LN12main:
-
-	}
+	cout << "substring position (asm version):" << findsubstring((char*)str.c_str(), (char*)substr.c_str()) <<endl;
 }
