@@ -1,7 +1,7 @@
 ﻿#include <iostream> 
 
 using namespace std;
-//char prnformat[] = "%s\n";
+
 int findsubstring(char strbig[], char substr[]) {
     __asm {
             //mov	eax, strbig; первый аргумент
@@ -28,9 +28,9 @@ int findsubstring(char strbig[], char substr[]) {
                 mov edx, edi                    ; EDX сохранит адрес подстроки, чтоб можно было быстро переходит на начало подстроки
 
                 cmp BYTE PTR[esi], 0            ; Если на вход пустая строка или  подстрока
-                je $endproc                     ; выход
+                je $ex                          ; выход
                 cmp BYTE PTR[edi], 0            ; 
-                je $endproc                     ; выход
+                je $ex                          ; выход
 
                 xor eax, eax                    ; номер текущего символа большой строки   = 0
 
@@ -66,6 +66,8 @@ $ex:
     }
 }
 
+
+
 int findsubstring2(char* str, char* substr) {
 	if (str[0] == '\0' || substr[0] == '\0')
 		return -1;
@@ -86,6 +88,65 @@ int findsubstring2(char* str, char* substr) {
 	return res;
 }
 
+int findsubstring3(char strbig[], char substr[]) {
+    // этот код реализует ровно тот алгоритм, что на С выше
+    __asm {
+            mov esi, DWORD PTR[strbig]  ; строка
+            mov edi, DWORD PTR[substr]  ; подстрока
+
+            mov eax, -1                 ; здесь будет результат, сразу делаем - 1 - то есть в начале = не найдено
+            xor ebx, ebx                ; здесь будем сравнивать текущий символ, обнулим
+
+            xor ecx, ecx                ; здесь будет номер текущего просматриваемого символа в строке 
+
+            mov edx, edi                ; EDX сохранит адрес подстроки, чтоб можно было быстро переходить на начало подстроки
+
+            cmp BYTE PTR[esi], 0        ; Если на вход пустая строка или  подстрока
+            je $ex                      ; выход
+            cmp BYTE PTR[edi], 0
+            je $ex                      ; выход
+
+
+                                        ; будем искать в цикле.ESI - большая строка.EDI - подстрока
+$for :                                  ; начало внешнего цикла
+            mov bl, BYTE PTR[esi]       ; в BL - текущий символ строки
+            cmp bl, 0                   ; если 0 = строка кончилась, выход из цикла
+            je $ex
+
+            mov edi, edx                ;переходим на начало подстроки
+            push esi                    ;сохраним в стек значение esi - позиция в основной строке
+$intfor:                                ;начало внутреннего цикла
+            mov bl, BYTE PTR[esi]
+            cmp bl, BYTE PTR [edi]      ; сравним его с символом в подстроке
+            jne $endintfor;
+
+            cmp bl, 0                   ;проверем текущий символ строки на 0, т.е. на конец
+            je $endintfor
+            
+            mov bl, BYTE PTR [edi]      ;проверем текущий символ подстроки на 0, т.е.на конец
+            cmp bl, 0
+            je $endintfor
+
+            inc esi
+            inc edi
+            jmp $intfor
+
+$endintfor:                             ;конец внутреннего цикла
+            pop esi                     ;восстановим из стека - чтобы вернуться в текущий символ в основной строке. во внутреннем цикле мы меняли этот указатель
+            mov bl, BYTE PTR [edi]
+            cmp bl, 0
+            jne $next
+            mov eax, ecx
+            jmp $ex                     ; если дошли во внутреннем цикле до конца подстроки - значит нашли ее. выходим, результат кладем в eax
+
+$next :
+            inc ecx                     ; номер просматриваемого символа основной строки + 1
+            inc esi                     ; сдвигаемся в большой строке на следующий символ
+            jmp $for                    ; на начало цикла
+$ex :
+    }
+}
+
 int main()
 {
 	string str, substr;
@@ -95,10 +156,12 @@ int main()
 	//	cout << "enter substring (should be shorter than str):";
 	//	getline(cin, substr); 
 	//} while ((str.length() == 0) || (substr.length() > str.length()) || substr.length() == 0);
-	//
+	// чтоб проще отлаживать было убрал интерактивный ввод
 	str = "hello world";
 	substr = "wo";
 	cout << "substring position (c version):" << findsubstring2((char*)str.c_str(), (char*)substr.c_str()) << endl;
 
 	cout << "substring position (asm version):" << findsubstring((char*)str.c_str(), (char*)substr.c_str()) <<endl;
+
+    cout << "substring position (asm version 2):" << findsubstring3((char*)str.c_str(), (char*)substr.c_str()) << endl;
 }
