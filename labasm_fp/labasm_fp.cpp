@@ -2,72 +2,6 @@
 
 using namespace std;
 
-int findsubstring(char strbig[], char substr[]) {
-    __asm {
-            //mov	eax, strbig; первый аргумент
-            //push	eax
-            //mov     eax, offset prnformat
-            //push    eax
-            //call	printf
-            //add	esp, 8
-
-            //mov	eax, substr; второй аргумент
-            //push	eax
-            //mov     eax, offset prnformat
-            //push    eax
-            //call	printf
-            //add	esp, 8
-
-                mov     esi, DWORD PTR[strbig]; строка
-                mov     edi, DWORD PTR[substr]; подстрока
-
-                mov eax, -1                     ; здесь будет результат, сразу делаем -1 - типа не найдено
-                xor ecx, ecx                    ; сколько совпавших символов подстроки, в начале 0
-                xor ebx, ebx                    ; здесь будем сравнивать текущий символ, обнулим
-
-                mov edx, edi                    ; EDX сохранит адрес подстроки, чтоб можно было быстро переходит на начало подстроки
-
-                cmp BYTE PTR[esi], 0            ; Если на вход пустая строка или  подстрока
-                je $ex                          ; выход
-                cmp BYTE PTR[edi], 0            ; 
-                je $ex                          ; выход
-
-                xor eax, eax                    ; номер текущего символа большой строки   = 0
-
-                ; Иначе будем искать в цикле.ESI - большая строка.EDI - подстрока
-$for :
-                mov bl, BYTE PTR[esi]       ; в BL - текущий символ строки
-                cmp bl, 0                   ; если 0 = строка кончилась, значит не нашли подстроку
-                jne $cnt
-                mov eax,-1                  ; возвращаем -1
-                jmp $ex
-$cnt:           cmp bl, [edi]               ; сравним его с символом в подстроке
-                jne $no                     ; если символы не равны, значит надо двигать на следующий в большой строке и заканчиваем сравнение блока
-                inc ecx                     ; Иначе увеличим счетчик длины искомого
-                inc edi                     ; Перескочим на следующий символ в подстроке
-                cmp BYTE PTR[edi], 0        ; проверим узнаем не конец ли подстроки
-                je $endproc                 ; Если конец - строка найдена.Выходим.
-                jmp $next                   ; Иначе пойдем на следующую итерацию цикла поиска
-$no :
-                sub esi, ecx                ; Поскольку используется один цикл для прохода
-                                            ; После поиска подстроки нам приходится возвращаться на тот символ, с которого мы начали.
-                                            ; 
-                xor ecx, ecx                ; делаем что совпавших символов = 0
-                mov edi, edx                ; И в подстроке снова на начало следующего символа
-$next :
-                inc eax                     ; номер просматриваемого +1
-                inc esi                     ; сдвигаемся в большой строке на следующий символ
-
-                jmp $for                    ; на начало цикла
-$endproc :
-                sub eax, ecx                ; Поскольку у нас ЕАХ будет указывать на позицию последнего символа искомого,
-                inc eax                     ; и корректировка
-$ex:
-    }
-}
-
-
-
 int findsubstring2(char* str, char* substr) {
 	if (str[0] == '\0' || substr[0] == '\0')
 		return -1;
@@ -146,6 +80,69 @@ $next :
 $ex :
     }
 }
+int findsubstring4(char strbig[], int strlen, char substr[], int substrlen) {
+    __asm {
+        //mov	eax, strbig; первый аргумент
+        //push	eax
+        //mov     eax, offset prnformat
+        //push    eax
+        //call	printf
+        //add	esp, 8
+
+        //mov	eax, substr; второй аргумент
+        //push	eax
+        //mov     eax, offset prnformat
+        //push    eax
+        //call	printf
+        //add	esp, 8
+
+            mov eax, -1; здесь будет результат, сразу делаем - 1 - то есть в начале = не найдено
+            cmp strlen, 0
+            je $ex
+
+            cmp substrlen, 0
+            je $ex
+
+            mov edx, strlen
+            sub edx, substrlen      ;если длина подстроки больше чем строка, то как бы надо выходить
+            cmp edx,0
+            jl $ex
+
+
+            mov     esi, DWORD PTR [strbig]     ; pointer to string in ESI
+
+            ; enter the compare loop
+$repeat:
+            mov     edi, DWORD PTR[substr]  ; pointer to substring in EDI
+            mov     ecx, substrlen          ; length substring in ECX(loop counter)
+            cld
+            mov     eax,esi
+            repe    cmpsb               ; compare string at edi with length ecx with string in esi
+            jz      $found              ; if zero flag then substring is found within string, exit loop
+
+            ; substring is not found yet, put substring pointer at begin of substring
+
+            inc eax
+            mov esi,eax
+            dec edx
+            and edx, edx            ; check remaining length to search in. это просто проверка на ноль edx
+            jnz $repeat             ; remaining length non - zero, repeat
+
+$notfound:
+            ; else, substring wasn't found, exit loop
+            ; substring not found actions
+            jmp $ex
+$found:
+            ; substring found actions
+            ; si has address to start of substring + the length of the substring
+            ; subtracting the start of the string we can calculate the offset(or index) in the string where substring starts
+
+            sub         esi, substrlen
+            sub         esi, strbig
+            mov         eax, esi
+$ex :
+    }
+}
 
 int main()
 {
@@ -158,10 +155,8 @@ int main()
 	//} while ((str.length() == 0) || (substr.length() > str.length()) || substr.length() == 0);
 	// чтоб проще отлаживать было убрал интерактивный ввод
 	str = "hello world";
-	substr = "wo";
+	substr = "lo";
 	cout << "substring position (c version):" << findsubstring2((char*)str.c_str(), (char*)substr.c_str()) << endl;
-
-	cout << "substring position (asm version):" << findsubstring((char*)str.c_str(), (char*)substr.c_str()) <<endl;
-
     cout << "substring position (asm version 2):" << findsubstring3((char*)str.c_str(), (char*)substr.c_str()) << endl;
+    cout << "substring position (asm version 3):" << findsubstring4((char*)str.c_str(), str.length(), (char*)substr.c_str(), substr.length()) << endl;
 }
