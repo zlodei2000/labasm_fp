@@ -108,7 +108,7 @@ int findsubstring4(char strbig[], int strlen, char substr[], int substrlen) {
             cmp edx,0
             jl $ex
 
-
+            inc edx
             mov     esi, DWORD PTR [strbig]     ; pointer to string in ESI
 
             ; enter the compare loop
@@ -125,12 +125,13 @@ $repeat:
             inc eax
             mov esi,eax
             dec edx
-            and edx, edx            ; check remaining length to search in. это просто проверка на ноль edx
+            cmp edx, 0            ; check remaining length to search in. это просто проверка на ноль edx
             jnz $repeat             ; remaining length non - zero, repeat
 
 $notfound:
             ; else, substring wasn't found, exit loop
             ; substring not found actions
+            mov eax,-1
             jmp $ex
 $found:
             ; substring found actions
@@ -155,7 +156,7 @@ int main()
 	//} while ((str.length() == 0) || (substr.length() > str.length()) || substr.length() == 0);
 	// чтоб проще отлаживать было убрал интерактивный ввод
 	str = "hello world";
-	substr = "lo";
+	substr = "wor";
 	cout << "substring position (c version):" << findsubstring2((char*)str.c_str(), (char*)substr.c_str()) << endl;
     cout << "substring position (asm version 2):" << findsubstring3((char*)str.c_str(), (char*)substr.c_str()) << endl;
     cout << "substring position (asm version 3):" << findsubstring4((char*)str.c_str(), str.length(), (char*)substr.c_str(), substr.length()) << endl;
